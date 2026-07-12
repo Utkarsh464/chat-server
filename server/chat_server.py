@@ -20,7 +20,10 @@ class ChatServer:
 
     def _accept_connections(self):
         while True:
-            client_socket, addr = self.server.accept()
+            try:
+                client_socket, addr = self.server.accept()
+            except OSError:
+                break
             self.clients[client_socket] = None
             print("A new client has connected.")
             thread = threading.Thread(target=handle_client, args=(self, client_socket))

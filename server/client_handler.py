@@ -1,6 +1,6 @@
 import socket
 
-def client_usrname(client_socket):
+def get_username(client_socket):
     try:
         client_socket.send(b"Enter your username: ")
         username = client_socket.recv(1024).decode("utf-8")
@@ -10,7 +10,7 @@ def client_usrname(client_socket):
         return None
 
 def handle_client(server, client_socket):
-    username = client_usrname(client_socket)
+    username = get_username(client_socket)
     if not username:
         client_socket.close()
         return

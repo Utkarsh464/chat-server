@@ -1,5 +1,4 @@
 import os
-import socket
 import threading
 from chat_server import ChatServer
 
@@ -7,7 +6,7 @@ port = int(input("Enter the port number for the chat server: "))
 try:
     server = ChatServer(port)
     server.start()
-except socket.error as e:
+except OSError as e:
     print("Error binding to port:", e)
     exit(1)
 

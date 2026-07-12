@@ -24,8 +24,5 @@ Thumbs.db
 .venv/
 venv/
 
-# Screenshots
-screenshots/
-
 # Logs
 *.log
