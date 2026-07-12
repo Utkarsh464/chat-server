@@ -104,10 +104,6 @@ chat-server/
 │   ├── main.py                  # Server entry point
 │   ├── chat_server.py           # ChatServer class
 │   └── client_handler.py        # Per-client handling logic
-├── screenshots/
-│   ├── server_shutdown.png      # Server terminal in action
-│   ├── client_chat.png          # Client receiving broadcast messages
-│   └── fresh_terminal.png       # Fresh terminal ready to connect
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -169,7 +165,7 @@ Enter the server IP and port, then choose a username. Type messages and press En
 
 ```
 Enter the port number for the chat server: 9999
-Server IP: 192.168.1.10
+Server IP: &lt;server-ip&gt;
 Server is listening on port 9999...
 A new client has connected.
 Alice has joined.
@@ -185,7 +181,7 @@ Server shut down.
 ### Client (Alice) Terminal
 
 ```
-Enter the server IP address: 192.168.1.10
+Enter the server IP address: &lt;server-ip&gt;
 Enter the server port: 9999
 Enter your username: Alice
 Bob: hi ..anyone here?

@@ -24,5 +24,8 @@ Thumbs.db
 .venv/
 venv/
 
+# Screenshots containing real session data
+screenshots/
+
 # Logs
 *.log
