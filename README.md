@@ -38,36 +38,35 @@
 ## Networking Architecture
 
 ```
-                        ┌─────────────────────────────────────────────────┐
-                        │                  SERVER (:9999)                  │
-                        │                                                  │
-                        │   ┌─────────────────────────────────────────┐   │
-                        │   │         ChatServer Class                │   │
-                        │   │  ┌─────────┐  ┌──────────┐  ┌───────┐  │   │
-                        │   │  │ Accept  │  │Broadcast │  │Client │  │   │
-                        │   │  │ Thread  │  │  Engine  │  │  Map  │  │   │
-                        │   │  └────┬────┘  └────┬─────┘  └───┬───┘  │   │
-                        │   └───────┼─────────────┼────────────┼──────┘   │
-                        └───────────┼─────────────┼────────────┼──────────┘
-                                    │             │            │
-            ┌───────────────────────┼─────────────┼────────────┼───────────────────┐
-            │              TCP Connection Pool     │            │                   │
-            │                       │             │            │                   │
-            │  ┌────────────────────┴──────┐  ┌───┴────────────┴──────┐            │
-            │  │  Client Handler Thread 1  │  │  Client Handler Thd 2 │   ...      │
-            │  │  ┌──────────────────────┐│  │  ┌──────────────────┐  │            │
-            │  │  │ get_username()       ││  │  │ get_username()   │  │            │
-            │  │  │ message loop         ││  │  │ message loop     │  │            │
-            │  │  └──────────────────────┘│  │  └──────────────────┘  │            │
-            │  └──────────────────────────┘  └────────────────────────┘            │
-            └──────────────────────────────────────────────────────────────────────┘
-                                    │                         │
-                                    ▼                         ▼
-                          ┌─────────────────┐     ┌─────────────────┐
-                          │   Client A      │     │   Client B      │
-                          │   (luffy)       │     │   (zoro)        │
-                          │   :9999         │     │   :9999         │
-                          └─────────────────┘     └─────────────────┘
+                         ┌─────────────────────────────────────────────────┐
+                         │                  SERVER (:9999)                  │
+                         │                                                  │
+                         │   ┌─────────────────────────────────────────┐   │
+                         │   │         ChatServer Class                │   │
+                         │   │  ┌─────────┐  ┌──────────┐  ┌───────┐  │   │
+                         │   │  │ Accept  │  │Broadcast │  │Client │  │   │
+                         │   │  │ Thread  │  │  Engine  │  │  Map  │  │   │
+                         │   │  └────┬────┘  └────┬─────┘  └───┬───┘  │   │
+                         │   └───────┼─────────────┼────────────┼──────┘   │
+                         └───────────┼─────────────┼────────────┼──────────┘
+                                     │             │            │
+             ┌───────────────────────┼─────────────┼────────────┼───────────────────┐
+             │              TCP Connection Pool     │            │                   │
+             │                       │             │            │                   │
+             │  ┌────────────────────┴──────┐  ┌───┴────────────┴──────┐            │
+             │  │  Client Handler Thread 1  │  │  Client Handler Thd 2 │   ...      │
+             │  │  ┌──────────────────────┐│  │  ┌──────────────────┐  │            │
+             │  │  │ get_username()       ││  │  │ get_username()   │  │            │
+             │  │  │ message loop         ││  │  │ message loop     │  │            │
+             │  │  └──────────────────────┘│  │  └──────────────────┘  │            │
+             │  └──────────────────────────┘  └────────────────────────┘            │
+             └──────────────────────────────────────────────────────────────────────┘
+                                     │                         │
+                                     ▼                         ▼
+                           ┌─────────────────┐     ┌─────────────────┐
+                           │    Client A     │     │    Client B     │
+                           │   (ephemeral)   │     │   (ephemeral)   │
+                           └─────────────────┘     └─────────────────┘
 ```
 
 ### Data Flow
@@ -81,15 +80,15 @@
     │                          │                               │
     │──── "Enter your ───────► │                               │
     │     username:"           │                               │
-    │◄─── "luffy" ──────────── │                               │
-    │                          │── "luffy has joined." ──────► │
+    │◄─── "Alice" ──────────── │                               │
+    │                          │── "Alice has joined." ──────► │
     │                          │                               │
     │──── "hello everyone" ──► │                               │
-    │                          │── "luffy: hello everyone" ──► │
-    │◄── "zoro: hey luffy" ─── │◄─── "zoro: hey luffy" ────── │
+    │                          │── "Alice: hello everyone" ──► │
+    │◄── "Bob: hey Alice" ──── │◄─── "Bob: hey Alice" ─────── │
     │                          │                               │
     │──── FIN ────────────────►│                               │
-    │                          │── "luffy has disconnected." ► │
+    │                          │── "Alice has disconnected." ► │
 ```
 
 ---
@@ -106,9 +105,9 @@ chat-server/
 │   ├── chat_server.py           # ChatServer class
 │   └── client_handler.py        # Per-client handling logic
 ├── screenshots/
-│   ├── server_shutdown.png      # Server terminal demo
-│   ├── luffy_client_chat.png    # Client A (luffy) demo
-│   └── fresh_terminal.png       # Client B (zoro) terminal
+│   ├── server_shutdown.png      # Server terminal in action
+│   ├── client_chat.png          # Client receiving broadcast messages
+│   └── fresh_terminal.png       # Fresh terminal ready to connect
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -170,27 +169,27 @@ Enter the server IP and port, then choose a username. Type messages and press En
 
 ```
 Enter the port number for the chat server: 9999
-Server IP: 192.168.29.176
+Server IP: 192.168.1.10
 Server is listening on port 9999...
 A new client has connected.
-luffy has joined.
+Alice has joined.
 A new client has connected.
-zoro has joined.
-zoro: hi ..anyone here?
-luffy: hi zoro i was waiting for you
+Bob has joined.
+Bob: hi ..anyone here?
+Alice: hey Bob! I was waiting for you
 [Server]: focus on the fight guys
 shutdown
 Server shut down.
 ```
 
-### Client (luffy) Terminal
+### Client (Alice) Terminal
 
 ```
-Enter the server IP address: 192.168.29.176
+Enter the server IP address: 192.168.1.10
 Enter the server port: 9999
-Enter your username: luffy
-zoro: hi ..anyone here?
-hi zoro i was waiting for you
+Enter your username: Alice
+Bob: hi ..anyone here?
+hey Bob! I was waiting for you
 [Server]: focus on the fight guys
 [Server]: Server is shutting down.
 ```
