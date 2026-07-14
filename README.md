@@ -4,6 +4,9 @@
     <a href="https://www.python.org/downloads/">
       <img src="https://img.shields.io/badge/python-3.7%2B-blue" alt="Python 3.7+">
     </a>
+    <img src="https://img.shields.io/badge/build%20%26%20run-python%203.7%2B-brightgreen" alt="Build & Run">
+    <img src="https://img.shields.io/badge/tests-none%20yet-lightgrey" alt="Tests">
+    <img src="https://img.shields.io/badge/status-learning%20project-yellow" alt="Status">
     <a href="https://github.com/Utkarsh464/chat-server/blob/main/LICENSE">
       <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
     </a>
@@ -14,59 +17,50 @@
       <img src="https://img.shields.io/github/last-commit/Utkarsh464/chat-server" alt="Last Commit">
     </a>
   </p>
-  <p align="center">
-    A multi-threaded, real-time TCP chat server built with Python sockets.<br>
-    Supports multiple concurrent clients, usernames, message broadcasting, and admin controls.
-  </p>
 </p>
 
----
-
-## Features
-
-- [x] **Multi-client support** — Handle unlimited simultaneous connections via threading
-- [x] **Username identification** — Each client identifies with a unique name on join
-- [x] **Real-time broadcasting** — Messages delivered to all connected clients instantly
-- [x] **Server announcements** — Server operator can broadcast messages
-- [x] **Graceful shutdown** — Server notifies all clients before stopping
-- [x] **Anonymized connections** — Client IP addresses are never exposed
-- [x] **Admin commands** — `/shutdown` and `/exit` controls from the server terminal
-- [x] **Disconnect resilience** — Dropped clients are cleaned up without crashing the server
+A multi-threaded TCP chat server built from scratch with Python's standard library. Supports concurrent clients, named message broadcasting, and server-side admin controls.
 
 ---
 
-## Networking Architecture
+## Background — What I Set Out to Learn
+
+I built this to understand TCP networking and concurrency below the abstraction layer of web frameworks: the sockets API (`bind`, `listen`, `accept`, `send`, `recv`, and the TCP state machine), thread-per-connection design with shared mutable state, and the GIL's real-world impact on I/O-bound workloads.
+---
+## Architecture
+
+The server uses a **thread-per-client** model. One acceptor thread blocks on `socket.accept()` and spawns a `ClientHandler` thread per connection. Each handler runs an independent receive loop; messages fan out through a shared `clients` dict (username → socket).
 
 ```
-                         ┌─────────────────────────────────────────────────┐
-                         │                  SERVER (:9999)                  │
-                         │                                                  │
-                         │   ┌─────────────────────────────────────────┐   │
-                         │   │         ChatServer Class                │   │
-                         │   │  ┌─────────┐  ┌──────────┐  ┌───────┐  │   │
-                         │   │  │ Accept  │  │Broadcast │  │Client │  │   │
-                         │   │  │ Thread  │  │  Engine  │  │  Map  │  │   │
-                         │   │  └────┬────┘  └────┬─────┘  └───┬───┘  │   │
-                         │   └───────┼─────────────┼────────────┼──────┘   │
-                         └───────────┼─────────────┼────────────┼──────────┘
-                                     │             │            │
-             ┌───────────────────────┼─────────────┼────────────┼───────────────────┐
-             │              TCP Connection Pool     │            │                   │
-             │                       │             │            │                   │
-             │  ┌────────────────────┴──────┐  ┌───┴────────────┴──────┐            │
-             │  │  Client Handler Thread 1  │  │  Client Handler Thd 2 │   ...      │
-             │  │  ┌──────────────────────┐│  │  ┌──────────────────┐  │            │
-             │  │  │ get_username()       ││  │  │ get_username()   │  │            │
-             │  │  │ message loop         ││  │  │ message loop     │  │            │
-             │  │  └──────────────────────┘│  │  └──────────────────┘  │            │
-             │  └──────────────────────────┘  └────────────────────────┘            │
-             └──────────────────────────────────────────────────────────────────────┘
-                                     │                         │
-                                     ▼                         ▼
-                           ┌─────────────────┐     ┌─────────────────┐
-                           │    Client A     │     │    Client B     │
-                           │   (ephemeral)   │     │   (ephemeral)   │
-                           └─────────────────┘     └─────────────────┘
+                          ┌─────────────────────────────────────────────────┐
+                          │                  SERVER (:9999)                  │
+                          │                                                  │
+                          │   ┌─────────────────────────────────────────┐   │
+                          │   │         ChatServer Class                │   │
+                          │   │  ┌─────────┐  ┌──────────┐  ┌───────┐  │   │
+                          │   │  │ Accept  │  │Broadcast │  │Client │  │   │
+                          │   │  │ Thread  │  │  Engine  │  │  Map  │  │   │
+                          │   │  └────┬────┘  └────┬─────┘  └───┬───┘  │   │
+                          │   └───────┼─────────────┼────────────┼──────┘   │
+                          └───────────┼─────────────┼────────────┼──────────┘
+                                      │             │            │
+              ┌───────────────────────┼─────────────┼────────────┼───────────────────┐
+              │              TCP Connection Pool     │            │                   │
+              │                       │             │            │                   │
+              │  ┌────────────────────┴──────┐  ┌───┴────────────┴──────┐            │
+              │  │  Client Handler Thread 1  │  │  Client Handler Thd 2 │   ...      │
+              │  │  ┌──────────────────────┐│  │  ┌──────────────────┐  │            │
+              │  │  │ get_username()       ││  │  │ get_username()   │  │            │
+              │  │  │ message loop         ││  │  │ message loop     │  │            │
+              │  │  └──────────────────────┘│  │  └──────────────────┘  │            │
+              │  └──────────────────────────┘  └────────────────────────┘            │
+              └──────────────────────────────────────────────────────────────────────┘
+                                      │                         │
+                                      ▼                         ▼
+                            ┌─────────────────┐     ┌─────────────────┐
+                            │    Client A     │     │    Client B     │
+                            │   (ephemeral)   │     │   (ephemeral)   │
+                            └─────────────────┘     └─────────────────┘
 ```
 
 ### Data Flow
@@ -91,8 +85,26 @@
     │                          │── "Alice has disconnected." ► │
 ```
 
----
+### Design Decisions
 
+**Daemon threads** — Every handler thread is created with `daemon=True`. When the main thread terminates (via `os._exit` on shutdown), daemon threads are killed automatically. This avoids explicit join tracking, though in-flight `send()` calls may be interrupted without recovery.
+**Safe dict iteration with `list()` copy** — The broadcast loop iterates over `list(self.clients.items())` rather than the dict directly. Without this intermediate copy, a mid-broadcast disconnect that removes an entry from `clients` raises `RuntimeError: dictionary changed size during iteration`.
+**`os._exit()` for shutdown** — `sys.exit()` raises `SystemExit`, which a bare `except:` anywhere in the thread pool would catch and suppress. `os._exit()` terminates the process immediately, file descriptors and all. A cooperative `threading.Event`-based approach would be cleaner but was deferred.
+**Binding to `0.0.0.0`** — The server listens on all interfaces so LAN clients connect without configuration. A production deployment would bind to a specific interface; for a learning project, `0.0.0.0` is the pragmatic default.
+**Cleanup on disconnect** — When `recv()` returns empty bytes (FIN from peer), the handler removes its entry from `clients` and broadcasts a disconnect notification. The socket is closed via `socket.close()` to release the fd.
+---
+## Problems Encountered
+**Broken pipe during broadcast** — Writing to a socket whose peer has already sent FIN raises `BrokenPipeError` (SIGPIPE on UNIX). The broadcast loop now catches `OSError` (parent class of both `BrokenPipeError` and `ConnectionResetError`) per-client, removes the dead entry, and continues. Without this, one abrupt disconnect crashed the entire server.
+**Stale client entries after handler crash** — If a handler thread exited without cleanup (e.g., unhandled exception), its entry remained in `clients`. Subsequent broadcasts would silently fail on that socket. Fixed by wrapping the message loop in `try/finally` that guarantees removal from the client map.
+**Blocking `accept()` on shutdown** — After the shutdown command, the acceptor thread blocks on `accept()` forever. The fix: close the server socket so `accept()` raises `OSError`, which the loop interprets as the signal to exit.
+---
+## What I'd Do Differently
+- **Test suite** — Zero tests. A `pytest` suite with loopback socket tests would make refactoring safe.
+- **Structured logging** — Replace `print` with `logging` (INFO for joins, DEBUG for raw bytes, ERROR for failures).
+- **Package with `pyproject.toml`** — Define entry points so `pip install -e .` works.
+- **Cooperative shutdown** — Use `threading.Event` to drain work before exit instead of daemon-thread semantics.
+- **Rate limiting** — No back-pressure mechanism; a malicious client could flood the broadcast loop.
+---
 ## Project Structure
 
 ```
@@ -110,59 +122,36 @@ chat-server/
 ```
 
 ---
-
-## Installation
-
+## Installation & Usage
 ```bash
-git clone https://github.com/Utkarsh464/chat-server.git
-cd chat-server
+git clone https://github.com/Utkarsh464/chat-server.git && cd chat-server
+```
+No external dependencies — pure Python standard library (3.7+).
 
-# No external dependencies — pure Python standard library
+### Server
+```bash
+cd server && python main.py
 ```
 
-Requires **Python 3.7+**.
-
----
-
-## Usage
-
-### 1. Start the server
-
-```bash
-cd server
-python main.py
-```
-
-You will be prompted for a port number. The server displays its IP and waits for clients.
-
-**Server commands:**
 | Command | Effect |
 |---------|--------|
 | `text message` | Broadcasts `[Server]: <message>` to all clients |
 | `shutdown` | Notifies all clients and stops the server |
 | `exit` | Exits the admin input loop (server keeps running) |
 
-### 2. Connect a client
-
+### Client
 ```bash
-cd client
-python client.py
+cd client && python client.py
 ```
 
-Enter the server IP and port, then choose a username. Type messages and press Enter to send.
-
-**Client commands:**
 | Command | Effect |
 |---------|--------|
 | `any text` | Sends message to all connected users |
 | `exit` | Disconnects from server |
 
 ---
-
 ## Demo
-
 ### Server Terminal
-
 ```
 Enter the port number for the chat server: 9999
 Server IP: &lt;server-ip&gt;
@@ -177,7 +166,6 @@ Alice: hey Bob! I was waiting for you
 shutdown
 Server shut down.
 ```
-
 ### Client (Alice) Terminal
 
 ```
@@ -190,51 +178,22 @@ hey Bob! I was waiting for you
 [Server]: Server is shutting down.
 ```
 
-> **Note:** An empty `server/__init__.py` has been added so the server package can be cleanly imported in a development context. It is not required for running the application.
-
----
-
-## Code Quality
-
-- **Robust broadcasting** — Disconnected clients are cleaned up during broadcast to prevent broken pipe errors
-- **Thread-safe client tracking** — Client dictionary is safely iterated with `list()` copies
-- **Daemon threads** — Background threads won't block process exit
-- **Graceful shutdown** — All sockets are closed cleanly on server stop; `accept()` loop breaks on closed socket
-- **PEP 8 compliant** — snake_case naming, proper spacing, organized imports
-
 ---
 
 ## Roadmap
 
-- [ ] End-to-end encryption for private messaging
-- [ ] SQLite-backed persistent chat history
-- [ ] File sharing and image transfer
-- [ ] Private messaging (`/msg <user> <message>`)
-- [ ] Nickname changes and color-coded usernames
-- [ ] Web-based client using WebSockets
-- [ ] Rate limiting and anti-spam measures
-- [ ] Docker containerization
-- [ ] CI/CD pipeline with GitHub Actions
-
----
-
-## Technologies Used
-
-| Technology | Purpose |
-|------------|---------|
-| **Python 3** | Core programming language |
-| **Socket** | TCP/IP network communication |
-| **Threading** | Concurrent client connection handling |
-| **Git** | Version control and collaboration |
+- End-to-end encryption for private messaging
+- SQLite-backed persistent chat history
+- File sharing and image transfer
+- Private messaging (`/msg <user> <message>`)
+- Nickname changes and color-coded usernames
+- Web-based client using WebSockets
+- Rate limiting and anti-spam measures
+- Docker containerization
+- CI/CD pipeline with GitHub Actions
 
 ---
 
 ## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
-
----
-
-<p align="center">
-  Built with Python &bull; Made for learning
-</p>
