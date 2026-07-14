@@ -1,23 +1,16 @@
-<p align="center">
-  <h1 align="center">Anonymous Chat Server</h1>
-  <p align="center">
-    <a href="https://www.python.org/downloads/">
-      <img src="https://img.shields.io/badge/python-3.7%2B-blue" alt="Python 3.7+">
-    </a>
-    <img src="https://img.shields.io/badge/build%20%26%20run-python%203.7%2B-brightgreen" alt="Build & Run">
-    <img src="https://img.shields.io/badge/tests-none%20yet-lightgrey" alt="Tests">
-    <img src="https://img.shields.io/badge/status-learning%20project-yellow" alt="Status">
-    <a href="https://github.com/Utkarsh464/chat-server/blob/main/LICENSE">
-      <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-    </a>
-    <a href="https://github.com/Utkarsh464/chat-server">
-      <img src="https://img.shields.io/github/stars/Utkarsh464/chat-server?style=social" alt="GitHub Stars">
-    </a>
-    <a href="https://github.com/Utkarsh464/chat-server/commits/main">
-      <img src="https://img.shields.io/github/last-commit/Utkarsh464/chat-server" alt="Last Commit">
-    </a>
-  </p>
-</p>
+# Anonymous Chat Server
+
+<div align="center">
+
+[![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue)](https://www.python.org/downloads/)
+[![Build & Run](https://img.shields.io/badge/build%20%26%20run-python%203.7%2B-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-none%20yet-lightgrey)]()
+[![Status](https://img.shields.io/badge/status-learning%20project-yellow)]()
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/Utkarsh464/chat-server?style=social)]()
+[![Last Commit](https://img.shields.io/github/last-commit/Utkarsh464/chat-server)]()
+
+</div>
 
 A multi-threaded TCP chat server built from scratch with Python's standard library. Supports concurrent clients, named message broadcasting, and server-side admin controls.
 
