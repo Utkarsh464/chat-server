@@ -80,15 +80,15 @@ The server uses a **thread-per-client** model. One acceptor thread blocks on `so
 
 ### Design Decisions
 
-**Daemon threads** — Every handler thread is created with `daemon=True`. When the main thread terminates (via `os._exit` on shutdown), daemon threads are killed automatically. This avoids explicit join tracking, though in-flight `send()` calls may be interrupted without recovery.
-**Safe dict iteration with `list()` copy** — The broadcast loop iterates over `list(self.clients.items())` rather than the dict directly. Without this intermediate copy, a mid-broadcast disconnect that removes an entry from `clients` raises `RuntimeError: dictionary changed size during iteration`.
+**Non-daemon threads, terminated via `os._exit()`** — Handler and acceptor threads are created without `daemon=True`, so the process stays alive as long as `accept()` blocks or any client handler is running. Shutdown therefore relies on `os._exit(0)` in `main.py`, which kills every thread immediately — no join tracking. In-flight `send()` calls may be interrupted without recovery.
+**Safe dict iteration with `list()` copy** — The broadcast loop iterates over `list(self.clients)` rather than the dict directly. Without this intermediate copy, a mid-broadcast disconnect that removes an entry from `clients` raises `RuntimeError: dictionary changed size during iteration`.
 **`os._exit()` for shutdown** — `sys.exit()` raises `SystemExit`, which a bare `except:` anywhere in the thread pool would catch and suppress. `os._exit()` terminates the process immediately, file descriptors and all. A cooperative `threading.Event`-based approach would be cleaner but was deferred.
 **Binding to `0.0.0.0`** — The server listens on all interfaces so LAN clients connect without configuration. A production deployment would bind to a specific interface; for a learning project, `0.0.0.0` is the pragmatic default.
 **Cleanup on disconnect** — When `recv()` returns empty bytes (FIN from peer), the handler removes its entry from `clients` and broadcasts a disconnect notification. The socket is closed via `socket.close()` to release the fd.
 ---
 ## Problems Encountered
 **Broken pipe during broadcast** — Writing to a socket whose peer has already sent FIN raises `BrokenPipeError` (SIGPIPE on UNIX). The broadcast loop now catches `OSError` (parent class of both `BrokenPipeError` and `ConnectionResetError`) per-client, removes the dead entry, and continues. Without this, one abrupt disconnect crashed the entire server.
-**Stale client entries after handler crash** — If a handler thread exited without cleanup (e.g., unhandled exception), its entry remained in `clients`. Subsequent broadcasts would silently fail on that socket. Fixed by wrapping the message loop in `try/finally` that guarantees removal from the client map.
+**Stale client entries after handler crash** — Cleanup depends on `remove_client()` being reached after the receive loop exits normally. There is no `try/finally`: if `recv()` or `broadcast()` raises anything other than `socket.error`, the handler exits without removing its entry and later broadcasts fail silently on that socket. Known limitation — the handler could be hardened with a `try/finally`.
 **Blocking `accept()` on shutdown** — After the shutdown command, the acceptor thread blocks on `accept()` forever. The fix: close the server socket so `accept()` raises `OSError`, which the loop interprets as the signal to exit.
 ---
 ## What I'd Do Differently
